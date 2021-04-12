@@ -25,7 +25,7 @@ const startingQuestion = () => {
                 deleteEmployee();
                 break;
             case "Delete a Row":
-                deleteRow();
+                deleteRole();
                 break;
             case "Delete a Department":
                 deleteDepartment();
@@ -136,12 +136,48 @@ function createDepartment () {
 }
 
 function deleteEmployee () {
+    let firstQuery = connection.query("SELECT * FROM employee", (err, res) => {
+        if (err) throw err;
+        prompt([
+            {
+                type: "list",
+                name: "empID",
+                message: "Select the employee you would like to remove.",
+                choices: res.map(employee => {
+                    return { name: `${employee.first_name} ${employee.last_name}`, value: employee.id }
+                })
+            }
+        ]).then(answer => {
+            let secondQuery = connection.query("DELETE FROM employee WHERE ?", [{ id: answer.empID }], (err) => {
+                if (err) throw err;
+                console.log("Employee has been removed.");
+                startingQuestion();
+            })
+        });
+    });
+};
 
-}
-
-function deleteRow () {
-
-}
+function deleteRole () {
+    let firstQuery = connection.query("SELECT * FROM role", (err, res) => {
+        if (err) throw err;
+        prompt([
+            {
+                type: "list",
+                name: "roleID",
+                message: "Select the role you would like to remove.",
+                choices: res.map(role => {
+                    return { name: `${role.title}`, value: role.id }
+                })
+            }
+        ]).then(answer => {
+            let secondQuery = connection.query("DELETE FROM role WHERE ?", [{ id: answer.roleID }], (err) => {
+                if (err) throw err;
+                console.log("Role has been removed.");
+                startingQuestion();
+            })
+        });
+    });
+};
 
 function deleteDepartment () {
 
