@@ -9,20 +9,47 @@ const startingQuestion = () => {
         type: "list",
         name: "startQuestion",
         message: "What would you like to do?",
-        choices: ["Create Employee", "Create Role", "Create Department", "Delete Employee"]
+        choices: ["Create an Employee", "Create a Role", "Create a Department", "Delete an Employee", "Delete a Role", "Delete a Department", "View Employees", "View Roles", "View Departments", "View Employees by Manager", "View Employees by Department", "Update Employee Manager", "Update Employee Role", ]
     }).then(answer => {
         switch(answer.startQuestion) {
-            case "Create Employee":
+            case "Create an Employee":
                 createEmployee();
                 break;
-            case "Create Role":
+            case "Create a Role":
                 createRole();
                 break;
-            case "Create Department":
+            case "Create a Department":
                 createDepartment();
                 break;
-            case "Delete Employee":
+            case "Delete an Employee":
                 deleteEmployee();
+                break;
+            case "Delete a Row":
+                deleteRow();
+                break;
+            case "Delete a Department":
+                deleteDepartment();
+                break;
+            case "View Employees":
+                viewEmployees();
+                break;
+            case "View Roles":
+                viewRoles();
+                break;
+            case "View Departments":
+                viewDepartments();
+                break;
+            case "View Employees by Manager":
+                viewEmpManager();
+                break;
+            case "View Employees by Department":
+                viewEmpDepartment();
+                break;
+            case "Update Employee Manager":
+                updateEmpManager();
+                break;
+            case "Update Employee Role":
+                updateEmpRole();
                 break;
             default:
                 process.exit();
@@ -112,5 +139,38 @@ function deleteEmployee () {
 
 }
 
+function deleteRow () {
+
+}
+
+function deleteDepartment () {
+
+}
+
+function viewEmployees () {
+    connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title AS role, CONCAT(manager.first_name,' ',manager.last_name) AS manager, department.name FROM employee LEFT JOIN role ON employee.role_id = role.role_id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON employee.manager_id = manager.id", (err, res) => {
+        if (err) throw err;
+        console.table(res);
+        startingQuestion();
+    });
+}
+
+function viewRoles () {
+    connection.query("SELECT * FROM role", (err, res) => {
+        if (err) throw err;
+        console.table(res);
+        startingQuestion();
+    });
+}
+
+function viewDepartments () {
+    connection.query("SELECT * FROM department", (err, res) => {
+        if (err) throw err;
+        console.table(res);
+        startingQuestion();
+    });
+}
+
+startingQuestion();
 
 // will need to do joins somehow...? 
