@@ -1,6 +1,6 @@
 const connection = require("./config/connection");
 
-const {prompt} = require("inquirer");
+const { prompt } = require("inquirer");
 
 require("console.table");
 
@@ -12,7 +12,7 @@ const startingQuestion = () => {
         choices: ["Create an Employee", "Create a Role", "Create a Department", "Delete an Employee", "Delete a Role", "Delete a Department", "View Employees", "View Roles", "View Departments", "Update Employee Role"]
         // "View Employees by Manager", "View Employees by Department", "Update Employee Manager"
     }).then(answer => {
-        switch(answer.startQuestion) {
+        switch (answer.startQuestion) {
             case "Create an Employee":
                 createEmployee();
                 break;
@@ -58,45 +58,51 @@ const startingQuestion = () => {
     })
 }
 
-function createEmployee () {
-    prompt([
-        {
-            type: "input",
-            name: "firstName",
-            message: "What is the employee's first name?"
-        },
-        {
-            type: "input",
-            name: "lastName",
-            message: "What is the employee's last name?",
-        },
-        {
-            type: "list",
-            name: "employeeRole",
-            message: "What is the employee's role?",
-            choices: ["Manager", "HR", "Sales Representative", "Engineer", "Technical Support", "Machinist",]
-        },
-        {
-            type: "input",
-            name: "isManager",
-            message: "Is this employee a manager?"
-        },
-        {
-            type: "input",
-            name: "whoIsManager",
-            message: "Who is this employee's manager?"
-        }
-    ]).then(answers => {
-        connection.query("INSERT INTO employee SET ?", {
-            first_name: answers.firstName,
-            last_name: answers.lastName,
-            role_id: answers.employeeRole,
-            manager_id: answers.whoIsManager
+function createEmployee() {
+    connection.query(`SELECT employee.id, employee.first_name, employee.last_name, employee.role_id, role.title, department.department_name,
+    role.salary, employee.manager_id 
+      FROM employee
+      INNER JOIN role on role.id = employee.role_id
+      INNER JOIN department ON department.id = role.department_id`, (err, results) => {
+        if (err) throw err;
+        prompt([
+            {
+                type: "input",
+                name: "firstName",
+                message: "What is the employee's first name?"
+            },
+            {
+                type: "input",
+                name: "lastName",
+                message: "What is the employee's last name?",
+            },
+            {
+                type: "list",
+                name: "employeeRole",
+                message: "What is the employee's role?",
+                choices: results.map(role => {
+                    return { name: role.title, value: role.id }
+                })
+            },
+            {
+                type: "input",
+                name: "whoIsManager",
+                message: "Who is this employee's manager?"
+            }
+        ]).then(answers => {
+            connection.query("INSERT INTO employee SET ?", {
+                first_name: answers.firstName,
+                last_name: answers.lastName,
+                role_id: answers.employeeRole,
+                manager_id: answers.whoIsManager,
+            })
+            startingQuestion();
         })
     })
+    // console.log(addEmpQuery.sql);
 }
 
-function createRole () {
+function createRole() {
     prompt([
         {
             type: "input",
@@ -119,10 +125,11 @@ function createRole () {
             salary: answers.roleSalary,
             department_id: answers.roleDepartment
         })
+        startingQuestion();
     })
 }
 
-function createDepartment () {
+function createDepartment() {
     prompt([
         {
             type: "input",
@@ -130,13 +137,14 @@ function createDepartment () {
             message: "What is the name of the department you would like to create?"
         }
     ]).then(answers => {
-        connection.query ("INSERT INTO department SET ?", {
+        connection.query("INSERT INTO department SET ?", {
             department_name: answers.newDepartment
         })
+        startingQuestion();
     })
 }
 
-function deleteEmployee () {
+function deleteEmployee() {
     let firstQuery = connection.query("SELECT * FROM employee", (err, res) => {
         if (err) throw err;
         prompt([
@@ -159,7 +167,7 @@ function deleteEmployee () {
 };
 
 function deleteRole () {
-    let firstQuery = connection.query("SELECT * FROM role", (err, res) => {
+    connection.query("SELECT * FROM role", (err, res) => {
         if (err) throw err;
         prompt([
             {
@@ -171,13 +179,14 @@ function deleteRole () {
                 })
             }
         ]).then(answer => {
-            let secondQuery = connection.query("DELETE FROM role WHERE ?", [{ id: answer.roleID }], (err) => {
+            connection.query("DELETE FROM role WHERE ?", [{ id: answer.roleID }], (err) => {
                 if (err) throw err;
                 console.log("Role has been removed.");
                 startingQuestion();
             })
         });
     });
+    // console.log(firstQuery.sql);
 };
 
 function deleteDepartment () {
@@ -301,7 +310,7 @@ function viewEmpDepartment () {
 function updateEmpManager () {
 
 };
-  
+
 
 startingQuestion();
 
