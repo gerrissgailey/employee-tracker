@@ -9,7 +9,8 @@ const startingQuestion = () => {
         type: "list",
         name: "startQuestion",
         message: "What would you like to do?",
-        choices: ["Create an Employee", "Create a Role", "Create a Department", "Delete an Employee", "Delete a Role", "Delete a Department", "View Employees", "View Roles", "View Departments", "View Employees by Manager", "View Employees by Department", "Update Employee Manager", "Update Employee Role", ]
+        choices: ["Create an Employee", "Create a Role", "Create a Department", "Delete an Employee", "Delete a Role", "Delete a Department", "View Employees", "View Roles", "View Departments", "Update Employee Role"]
+        // "View Employees by Manager", "View Employees by Department", "Update Employee Manager"
     }).then(answer => {
         switch(answer.startQuestion) {
             case "Create an Employee":
@@ -39,18 +40,18 @@ const startingQuestion = () => {
             case "View Departments":
                 viewDepartments();
                 break;
-            case "View Employees by Manager":
-                viewEmpManager();
-                break;
-            case "View Employees by Department":
-                viewEmpDepartment();
-                break;
-            case "Update Employee Manager":
-                updateEmpManager();
-                break;
             case "Update Employee Role":
                 updateEmpRole();
                 break;
+            // case "View Employees by Manager":
+            //     viewEmpManager();
+            //     break;
+            // case "View Employees by Department":
+            //     viewEmpDepartment();
+            //     break;
+            // case "Update Employee Manager":
+            //     updateEmpManager();
+            //     break;
             default:
                 process.exit();
         }
@@ -180,7 +181,25 @@ function deleteRole () {
 };
 
 function deleteDepartment () {
-
+    let firstQuery = connection.query("SELECT * FROM department", (err, res) => {
+        if (err) throw err;
+        prompt([
+            {
+                type: "list",
+                name: "departmentID",
+                message: "Select the department you would like to remove.",
+                choices: res.map(department => {
+                    return { name: `${department.title}`, value: department.id }
+                })
+            }
+        ]).then(answer => {
+            let secondQuery = connection.query("DELETE FROM department WHERE ?", [{ id: answer.departmentID }], (err) => {
+                if (err) throw err;
+                console.log("Department has been removed.");
+                startingQuestion();
+            })
+        });
+    });
 }
 
 function viewEmployees () {
@@ -206,6 +225,83 @@ function viewDepartments () {
         startingQuestion();
     });
 }
+
+function updateEmpRole () {
+    let query = connection.query("SELECT * FROM employee", (err, res) => {
+        const employees = response.map(function (element) {
+            return {
+                name: `${element.first_name} ${element.last_name}`,
+                value: element.id
+            }
+        });
+
+        prompt([
+            {
+                type: "list",
+                name: "employeeID",
+                message: "Which employee would you like to update a role for?",
+                choices: employees
+            }
+        ]).then(input1 => {
+            connection.query("SELECT * FROM role", (err, data) => {
+                const roles = data.map(function (role) {
+                    return {
+                        name: role.title,
+                        value: role.id
+                    }
+                });
+
+                prompt([
+                    {
+                        type: "list",
+                        name: "roleID",
+                        message: "What is the employee's new role?",
+                        choices: roles
+                    }
+                ]).then(input2 => {
+                    const secondQuery = connection.query("UPDATE employee SET employee.role_id = ? WHERE employee.id = ?", [input2.roleID, input1.employeeID], function (err, res) {
+                        let newEmpRole;
+
+                        for (let i = 0; i < roles.length; i++) {
+                            if (roles[i].value == input2.roleID) {
+                                newEmpRole = roles[i].name;
+                            }
+                        }
+
+                        let employeeName;
+                        for (let j = 0; j < employees.length; j++) {
+                            if (employees[j].value == input1.employeeID) {
+                                employeeName = employees[j].name;
+                            }
+                        }
+
+                        if (res.changedRows === 1) {
+                            console.log(`Success! Role for ${employeeName} has been updated to ${newEmpRole}`);
+                        } else {
+                            console.log(`Failed: Current role for ${employeeName} is still ${newEmpRole}`)
+                        }
+
+                        startingQuestion();
+                    })
+                })
+            })
+        })
+    });
+
+};
+
+function viewEmpManager () {
+
+};
+
+function viewEmpDepartment () {
+
+};
+
+function updateEmpManager () {
+
+};
+  
 
 startingQuestion();
 
