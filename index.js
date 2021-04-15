@@ -25,7 +25,7 @@ const startingQuestion = () => {
             case "Delete an Employee":
                 deleteEmployee();
                 break;
-            case "Delete a Row":
+            case "Delete a Role":
                 deleteRole();
                 break;
             case "Delete a Department":
@@ -59,48 +59,55 @@ const startingQuestion = () => {
 }
 
 function createEmployee() {
-    connection.query(`SELECT employee.id, employee.first_name, employee.last_name, employee.role_id, role.title, department.department_name,
-    role.salary, employee.manager_id 
-      FROM employee
-      INNER JOIN role on role.id = employee.role_id
-      INNER JOIN department ON department.id = role.department_id`, (err, results) => {
+    prompt([
+      {
+        type: "input",
+        name: "firstName",
+        message: "What is the employee's first name?"
+      },
+      {
+        type: "input",
+        name: "lastName",
+        message: "What is the employee's last name?",
+      },
+    ]).then(answers => {
+      connection.query("SELECT * FROM role", (err, results) => {
         if (err) throw err;
         prompt([
-            {
-                type: "input",
-                name: "firstName",
-                message: "What is the employee's first name?"
-            },
-            {
-                type: "input",
-                name: "lastName",
-                message: "What is the employee's last name?",
-            },
-            {
+          {
+            type: "list",
+            name: "employeeRole",
+            message: "What is the employee's role?",
+            choices: results.map(role => {
+              return ({ name: role.title, value: role.id })
+            })
+          },
+        ]).then(({ employeeRole }) => {
+          connection.query("SELECT * FROM employee WHERE role_id = 3", (err, managers) => {
+            if (err) throw err;
+            prompt([
+              {
                 type: "list",
-                name: "employeeRole",
-                message: "What is the employee's role?",
-                choices: results.map(role => {
-                    return { name: role.title, value: role.id }
-                })
-            },
-            {
-                type: "input",
                 name: "whoIsManager",
-                message: "Who is this employee's manager?"
-            }
-        ]).then(answers => {
-            connection.query("INSERT INTO employee SET ?", {
+                message: "Who is this employee's manager?",
+                choices: [...managers.map(manager => {
+                  return ({ name: `${manager.first_name} ${manager.last_name}`, value: manager.id })
+                }), { name: 'No Manager', value: 0 }]
+              },
+            ]).then(({ whoIsManager }) => {
+              connection.query("INSERT INTO employee SET ?", {
                 first_name: answers.firstName,
                 last_name: answers.lastName,
-                role_id: answers.employeeRole,
-                manager_id: answers.whoIsManager,
+                role_id: employeeRole,
+                manager_id: whoIsManager,
+              })
+              startingQuestion();
             })
-            startingQuestion();
+          })
         })
+      })
     })
-    // console.log(addEmpQuery.sql);
-}
+  }
 
 function createRole() {
     prompt([
@@ -190,7 +197,7 @@ function deleteRole () {
 };
 
 function deleteDepartment () {
-    let firstQuery = connection.query("SELECT * FROM department", (err, res) => {
+    connection.query("SELECT * FROM department", (err, res) => {
         if (err) throw err;
         prompt([
             {
@@ -198,11 +205,11 @@ function deleteDepartment () {
                 name: "departmentID",
                 message: "Select the department you would like to remove.",
                 choices: res.map(department => {
-                    return { name: `${department.title}`, value: department.id }
+                    return { name: `${department.department_name}`, value: department.id }
                 })
             }
         ]).then(answer => {
-            let secondQuery = connection.query("DELETE FROM department WHERE ?", [{ id: answer.departmentID }], (err) => {
+            connection.query("DELETE FROM department WHERE ?", [{ id: answer.departmentID }], (err) => {
                 if (err) throw err;
                 console.log("Department has been removed.");
                 startingQuestion();
@@ -212,7 +219,7 @@ function deleteDepartment () {
 }
 
 function viewEmployees () {
-    connection.query("SELECT employee.id, employee.first_name, employee.last_name, role.title AS role, CONCAT(manager.first_name,' ',manager.last_name) AS manager, department.name FROM employee LEFT JOIN role ON employee.role_id = role.role_id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON employee.manager_id = manager.id", (err, res) => {
+    connection.query("SELECT * FROM employee", (err, res) => {
         if (err) throw err;
         console.table(res);
         startingQuestion();
@@ -236,8 +243,9 @@ function viewDepartments () {
 }
 
 function updateEmpRole () {
-    let query = connection.query("SELECT * FROM employee", (err, res) => {
-        const employees = response.map(function (element) {
+    connection.query("SELECT * FROM employee", (err, res) => {
+        if (err) throw err;
+        const employees = res.map(function (element) {
             return {
                 name: `${element.first_name} ${element.last_name}`,
                 value: element.id
@@ -268,7 +276,8 @@ function updateEmpRole () {
                         choices: roles
                     }
                 ]).then(input2 => {
-                    const secondQuery = connection.query("UPDATE employee SET employee.role_id = ? WHERE employee.id = ?", [input2.roleID, input1.employeeID], function (err, res) {
+                    connection.query("UPDATE employee SET employee.role_id = ? WHERE employee.id = ?", [input2.roleID, input1.employeeID], function (err, res) {
+                        if (err) throw err;
                         let newEmpRole;
 
                         for (let i = 0; i < roles.length; i++) {
@@ -300,7 +309,9 @@ function updateEmpRole () {
 };
 
 function viewEmpManager () {
-
+    connection.query("SELECT * FROM employee WHERE role_id = 3", (err, managers) => {
+        if (err) throw err;
+    })
 };
 
 function viewEmpDepartment () {
