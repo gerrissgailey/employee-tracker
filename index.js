@@ -10,7 +10,6 @@ const startingQuestion = () => {
         name: "startQuestion",
         message: "What would you like to do?",
         choices: ["Create an Employee", "Create a Role", "Create a Department", "Delete an Employee", "Delete a Role", "Delete a Department", "View Employees", "View Roles", "View Departments", "Update Employee Role"]
-        // "View Employees by Manager", "View Employees by Department", "Update Employee Manager"
     }).then(answer => {
         switch (answer.startQuestion) {
             case "Create an Employee":
@@ -43,15 +42,6 @@ const startingQuestion = () => {
             case "Update Employee Role":
                 updateEmpRole();
                 break;
-            // case "View Employees by Manager":
-            //     viewEmpManager();
-            //     break;
-            // case "View Employees by Department":
-            //     viewEmpDepartment();
-            //     break;
-            // case "Update Employee Manager":
-            //     updateEmpManager();
-            //     break;
             default:
                 process.exit();
         }
@@ -83,7 +73,7 @@ function createEmployee() {
             })
           },
         ]).then(({ employeeRole }) => {
-          connection.query("SELECT * FROM employee WHERE role_id = 3", (err, managers) => {
+          connection.query("SELECT * FROM employee WHERE role_id = 1", (err, managers) => {
             if (err) throw err;
             prompt([
               {
@@ -121,18 +111,28 @@ function createRole() {
             name: "roleSalary",
             message: "What is the starting salary for this role?"
         },
-        {
-            type: "input",
-            name: "roleDepartment",
-            message: "What department does this role fall under?"
-        }
     ]).then(answers => {
-        connection.query("INSERT INTO role SET ?", {
-            title: answers.roleName,
-            salary: answers.roleSalary,
-            department_id: answers.roleDepartment
+        connection.query("SELECT * FROM department", (err, results) => {
+            if (err) throw err;
+            prompt([
+                {
+                    type: "list",
+                    name: "roleDepartment",
+                    message: "What department does this role fall under?",
+                    choices: results.map(department => {
+                        return ({ name: department.department_name, value: department.id })
+                      })
+                },
+                
+            ]).then(({ roleDepartment }) => {
+                connection.query("INSERT INTO role SET ?", {
+                    title: answers.roleName,
+                    salary: answers.roleSalary,
+                    department_id: roleDepartment
+                })
+                startingQuestion();
+            })
         })
-        startingQuestion();
     })
 }
 
@@ -152,7 +152,7 @@ function createDepartment() {
 }
 
 function deleteEmployee() {
-    let firstQuery = connection.query("SELECT * FROM employee", (err, res) => {
+    connection.query("SELECT * FROM employee", (err, res) => {
         if (err) throw err;
         prompt([
             {
@@ -164,7 +164,7 @@ function deleteEmployee() {
                 })
             }
         ]).then(answer => {
-            let secondQuery = connection.query("DELETE FROM employee WHERE ?", [{ id: answer.empID }], (err) => {
+            connection.query("DELETE FROM employee WHERE ?", [{ id: answer.empID }], (err) => {
                 if (err) throw err;
                 console.log("Employee has been removed.");
                 startingQuestion();
@@ -193,7 +193,6 @@ function deleteRole () {
             })
         });
     });
-    // console.log(firstQuery.sql);
 };
 
 function deleteDepartment () {
@@ -216,7 +215,7 @@ function deleteDepartment () {
             })
         });
     });
-}
+};
 
 function viewEmployees () {
     connection.query("SELECT * FROM employee", (err, res) => {
@@ -224,7 +223,7 @@ function viewEmployees () {
         console.table(res);
         startingQuestion();
     });
-}
+};
 
 function viewRoles () {
     connection.query("SELECT * FROM role", (err, res) => {
@@ -232,7 +231,7 @@ function viewRoles () {
         console.table(res);
         startingQuestion();
     });
-}
+};
 
 function viewDepartments () {
     connection.query("SELECT * FROM department", (err, res) => {
@@ -240,7 +239,7 @@ function viewDepartments () {
         console.table(res);
         startingQuestion();
     });
-}
+};
 
 function updateEmpRole () {
     connection.query("SELECT * FROM employee", (err, res) => {
@@ -251,7 +250,6 @@ function updateEmpRole () {
                 value: element.id
             }
         });
-
         prompt([
             {
                 type: "list",
@@ -267,7 +265,6 @@ function updateEmpRole () {
                         value: role.id
                     }
                 });
-
                 prompt([
                     {
                         type: "list",
@@ -308,21 +305,5 @@ function updateEmpRole () {
 
 };
 
-function viewEmpManager () {
-    connection.query("SELECT * FROM employee WHERE role_id = 3", (err, managers) => {
-        if (err) throw err;
-    })
-};
-
-function viewEmpDepartment () {
-
-};
-
-function updateEmpManager () {
-
-};
-
-
 startingQuestion();
 
-// will need to do joins somehow...? 
